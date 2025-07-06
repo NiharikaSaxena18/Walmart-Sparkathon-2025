@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartStock AI - Intelligent Inventory Forecasting</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: #e2e8f0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            backdrop-filter: blur(20px);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .header h1 {
+            color: #f1f5f9;
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        .card h3 {
+            color: #f1f5f9;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(59, 130, 246, 0.5);
+            padding-bottom: 0.75rem;
+        }
+        
+        .data-feeds {
+            grid-column: 1 / 2;
+        }
+        
+        .store-map {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+        }
+        
+        .sku-forecasts {
+            grid-column: 3 / 4;
+        }
+        
+        .integration-panel {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+        }
+        
+        .alerts {
+            grid-column: 3 / 4;
+            grid-row: 2 / 3;
+        }
+        
+        .feed-item {
+            padding: 1rem;
+            margin: 0.75rem 0;
+            background: rgba(51, 65, 85, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .feed-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            background: rgba(51, 65, 85, 0.8);
+        }
+        
+        .feed-item.weather { border-left-color: #ef4444; }
+        .feed-item.social { border-left-color: #a855f7; }
+        .feed-item.economic { border-left-color: #f59e0b; }
+        .feed-item.events { border-left-color: #10b981; }
+        
+        .map-container {
+            height: 400px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .store-marker {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid rgba(241, 245, 249, 0.9);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+        }
+        
+        .store-marker:hover {
+            transform: scale(1.8);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+        }
+        
+        .store-marker.high-demand { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .store-marker.medium-demand { 
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        .store-marker.low-demand { 
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        
+        .sku-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            margin: 0.75rem 0;
+            background: rgba(51, 65, 85, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .sku-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            background: rgba(51, 65, 85, 0.8);
+        }
+        
+        .confidence-bar {
+            width: 100px;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+            transition: width 0.5s ease;
+        }
+        
+        .integration-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .integration-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 1rem;
+            animation: blink 1.5s infinite;
+        }
+        
+        .status-dot.connected { background: #2ecc71; }
+        .status-dot.processing { background: #f39c12; }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        .alert {
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .alert.critical { 
+            background: #fee; 
+            border-left-color: #e74c3c; 
+            color: #c0392b;
+        }
+        
+        .alert.warning { 
+            background: #fff3cd; 
+            border-left-color: #f39c12; 
+            color: #856404;
+        }
+        
+        .alert.success { 
+            background: #d4edda; 
+            border-left-color: #2ecc71; 
+            color: #155724;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border-radius: 10px;
+            margin: 0.5rem 0;
+        }
+        
+        .metric h4 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .live-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+            z-index: 1000;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="live-indicator">🔴 LIVE</div>
+    
+    <div class="header">
+        <h1>
+            <div class="logo">S</div>
+            SmartStock AI - Intelligent Inventory Forecasting Platform
+        </h1>
+    </div>
+    
+    <div class="dashboard">
+        <!-- Real-time Data Feeds -->
+        <div class="card data-feeds">
+            <h3>🌐 Real-Time Data Feeds</h3>
+            <div id="data-feeds-container">
+                <!-- Data feeds will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Store Map -->
+        <div class="card store-map">
+            <h3>🗺 Regional Distribution Centers & Store Network</h3>
+            <div class="map-container" id="store-map">
+                <!-- Store markers will be populated here -->
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>High Demand</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>Medium Demand</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <span>Low Demand</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SKU Forecasts -->
+        <div class="card sku-forecasts">
+            <h3>📊 SKU-Level Demand Forecasts</h3>
+            <div id="sku-container">
+                <!-- SKU forecasts will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Integration Panel -->
+        <div class="card integration-panel">
+            <h3>🔗 Warehouse Management Integration</h3>
+            <div id="integration-container">
+                <!-- Integration status will be populated here -->
+            </div>
+            <div class="metric">
+                <h4 id="roi-metric">+35%</h4>
+                <p>Automation ROI Increase</p>
+            </div>
+        </div>
+        
+        <!-- Live Alerts -->
+        <div class="card alerts">
+            <h3>⚡ Live Predictions & Alerts</h3>
+            <div id="alerts-container">
+                <!-- Alerts will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script>
+        // Sample data
+        const storeData = [
+            { id: 'S4251', name: 'Miami Regional DC', x: 85, y: 70, demand: 'high', lat: 25.7617, lng: -80.1918 },
+            { id: 'S1837', name: 'Seattle Store', x: 15, y: 20, demand: 'medium', lat: 47.6062, lng: -122.3321 },
+            { id: 'S3492', name: 'Dallas DC', x: 50, y: 65, demand: 'high', lat: 32.7767, lng: -96.7970 },
+            { id: 'S2648', name: 'Chicago Store', x: 55, y: 35, demand: 'medium', lat: 41.8781, lng: -87.6298 },
+            { id: 'S1759', name: 'Phoenix Store', x: 25, y: 60, demand: 'low', lat: 33.4484, lng: -112.0740 },
+            { id: 'S3851', name: 'New York DC', x: 75, y: 25, demand: 'high', lat: 40.7128, lng: -74.0060 }
+        ];
+        
+        const skuData = [
+            { name: 'Flashlights', current: 145, predicted: 420, confidence: 94, change: '+189%' },
+            { name: 'Batteries AA', current: 267, predicted: 578, change: '+116%', confidence: 91 },
+            { name: 'Umbrellas', current: 89, predicted: 234, change: '+163%', confidence: 88 },
+            { name: 'Bottled Water', current: 1240, predicted: 2100, change: '+69%', confidence: 95 },
+            { name: 'Bread', current: 456, predicted: 523, change: '+15%', confidence: 86 },
+            { name: 'Winter Coats', current: 234, predicted: 98, change: '-58%', confidence: 92 }
+        ];
+        
+        const dataFeeds = [
+            { type: 'weather', icon: '🌪', text: 'Hurricane Warning - Florida Region', time: '2 min ago' },
+            { type: 'social', icon: '📱', text: 'Trending: #StormPrep +340% mentions', time: '3 min ago' },
+            { type: 'economic', icon: '💰', text: 'Payday cycle detected - increased spending', time: '5 min ago' },
+            { type: 'events', icon: '🏈', text: 'NFL Championship this weekend - Dallas', time: '7 min ago' },
+            { type: 'weather', icon: '☀', text: 'Extended warm weather - Texas region', time: '12 min ago' }
+        ];
+        
+        const integrationStatus = [
+            { name: 'Symbotic Warehouse System', status: 'connected', data: 'Real-time inventory levels' },
+            { name: 'Regional Distribution Centers', status: 'connected', data: 'Automated reorder triggers' },
+            { name: 'Transportation Management', status: 'processing', data: 'Route optimization active' },
+            { name: 'Store POS Systems', status: 'connected', data: 'Live sales data streaming' }
+        ];
+        
+        const alerts = [
+            { type: 'critical', text: 'Store #4251: Immediate restock needed - Flashlights', time: 'Now' },
+            { type: 'warning', text: 'Dallas DC: Prepare for 3x demand increase', time: '1 min ago' },
+            { type: 'success', text: 'Seattle optimization: 23% efficiency gain', time: '2 min ago' },
+            { type: 'warning', text: 'Winter inventory: Reduce by 15% - Texas region', time: '5 min ago' }
+        ];
+        
+        // Initialize dashboard
+        function initializeDashboard() {
+            populateStoreMap();
+            populateDataFeeds();
+            populateSKUForecasts();
+            populateIntegration();
+            populateAlerts();
+            startLiveUpdates();
+        }
+        
+        function populateStoreMap() {
+            const mapContainer = document.getElementById('store-map');
+            storeData.forEach(store => {
+                const marker = document.createElement('div');
+                marker.className = store-marker ${store.demand}-demand;
+                marker.style.left = ${store.x}%;
+                marker.style.top = ${store.y}%;
+                marker.title = ${store.name}\nDemand: ${store.demand.toUpperCase()};
+                
+                marker.addEventListener('mouseenter', (e) => {
+                    showTooltip(e, ${store.name}<br>Store ID: ${store.id}<br>Demand Level: ${store.demand.toUpperCase()});
+                });
+                
+                marker.addEventListener('mouseleave', hideTooltip);
+                
+                mapContainer.appendChild(marker);
+            });
+        }
+        
+        function populateDataFeeds() {
+            const container = document.getElementById('data-feeds-container');
+            dataFeeds.forEach(feed => {
+                const item = document.createElement('div');
+                item.className = feed-item ${feed.type};
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 1.2rem; margin-right: 0.5rem;">${feed.icon}</span>
+                            <strong>${feed.text}</strong>
+                        </div>
+                        <small style="color: #666;">${feed.time}</small>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function populateSKUForecasts() {
+            const container = document.getElementById('sku-container');
+            skuData.forEach(sku => {
+                const item = document.createElement('div');
+                item.className = 'sku-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${sku.name}</strong>
+                        <div style="font-size: 0.9rem; color: #666;">
+                            Current: ${sku.current} → Predicted: ${sku.predicted}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: bold; color: ${sku.change.includes('+') ? '#2ecc71' : '#e74c3c'};">
+                            ${sku.change}
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${sku.confidence}%;"></div>
+                        </div>
+                        <small>${sku.confidence}% confidence</small>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function populateIntegration() {
+            const container = document.getElementById('integration-container');
+            integrationStatus.forEach(integration => {
+                const item = document.createElement('div');
+                item.className = 'integration-item';
+                item.innerHTML = `
+                    <div class="status-dot ${integration.status}"></div>
+                    <div>
+                        <strong>${integration.name}</strong>
+                        <div style="font-size: 0.8rem; color: #666;">${integration.data}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function populateAlerts() {
+            const container = document.getElementById('alerts-container');
+            alerts.forEach(alert => {
+                const item = document.createElement('div');
+                item.className = alert ${alert.type};
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>${alert.text}</strong>
+                        <small>${alert.time}</small>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function showTooltip(e, content) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = content;
+            tooltip.style.left = ${e.pageX + 10}px;
+            tooltip.style.top = ${e.pageY - 10}px;
+            tooltip.style.opacity = '1';
+        }
+        
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.opacity = '0';
+        }
+        
+        function startLiveUpdates() {
+            // Simulate live updates
+            setInterval(() => {
+                // Update ROI metric
+                const roiMetric = document.getElementById('roi-metric');
+                const currentROI = parseInt(roiMetric.textContent.replace('%', '').replace('+', ''));
+                const newROI = currentROI + Math.floor(Math.random() * 3);
+                roiMetric.textContent = +${newROI}%;
+                
+                // Add new alert occasionally
+                if (Math.random() < 0.3) {
+                    addLiveAlert();
+                }
+                
+                // Update store markers (simulate demand changes)
+                updateStoreMarkers();
+                
+            }, 5000);
+        }
+        
+        function addLiveAlert() {
+            const newAlerts = [
+                { type: 'success', text: 'Phoenix Store: Inventory optimization complete', time: 'Now' },
+                { type: 'warning', text: 'Chicago DC: Weather alert - snow expected', time: 'Now' },
+                { type: 'critical', text: 'New York: High demand spike detected', time: 'Now' }
+            ];
+            
+            const randomAlert = newAlerts[Math.floor(Math.random() * newAlerts.length)];
+            const container = document.getElementById('alerts-container');
+            const item = document.createElement('div');
+            item.className = alert ${randomAlert.type};
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>${randomAlert.text}</strong>
+                    <small>${randomAlert.time}</small>
+                </div>
+            `;
+            container.insertBefore(item, container.firstChild);
+            
+            // Remove old alerts if too many
+            if (container.children.length > 6) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        function updateStoreMarkers() {
+            const markers = document.querySelectorAll('.store-marker');
+            markers.forEach(marker => {
+                // Randomly change demand levels to simulate live updates
+                if (Math.random() < 0.1) {
+                    const demands = ['high-demand', 'medium-demand', 'low-demand'];
+                    const currentDemand = demands.find(d => marker.classList.contains(d));
+                    marker.classList.remove(currentDemand);
+                    const newDemand = demands[Math.floor(Math.random() * demands.length)];
+                    marker.classList.add(newDemand);
+                }
+            });
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+    </script>
+</body>
+</html>
